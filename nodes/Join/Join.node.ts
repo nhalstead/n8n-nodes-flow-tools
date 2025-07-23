@@ -11,7 +11,7 @@ export class Join implements INodeType {
 
 	description: INodeTypeDescription = {
 		displayName: 'Join Streams',
-		name: 'ftJoin',
+		name: 'join',
 		icon: 'file:join.svg',
 		group: ['transform'],
 		version: 1,

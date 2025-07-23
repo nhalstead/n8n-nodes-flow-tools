@@ -11,7 +11,7 @@ import {
 export class Lookup implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Lookup',
-		name: 'ftLookup',
+		name: 'lookup',
 		icon: 'file:lookup.svg',
 		group: ['transform'],
 		version: 1,
