@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-flow-tools",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Additional Tools for n8n Streams",
   "keywords": [
     "n8n-community-node-package"
