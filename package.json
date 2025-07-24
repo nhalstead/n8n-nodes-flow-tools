@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-flow-tools",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Additional Tools for n8n Streams",
   "keywords": [
     "n8n-community-node-package"
@@ -35,7 +35,8 @@
     "credentials": [],
     "nodes": [
       "dist/nodes/Join/Join.node.js",
-      "dist/nodes/Lookup/Lookup.node.js"
+      "dist/nodes/Lookup/Lookup.node.js",
+      "dist/nodes/GroupBy/GroupBy.node.js"
     ]
   },
   "devDependencies": {
