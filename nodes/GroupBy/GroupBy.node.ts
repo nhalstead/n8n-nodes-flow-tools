@@ -71,7 +71,7 @@ export class GroupBy implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData(0);
 		const keyOn = this.getNodeParameter('keyOn', 0, 'id') as string;
-		const outputFormat = this.getNodeParameter('outputFormat', 0, 'id') as string;
+		const outputFormat = this.getNodeParameter('outputFormat', 0, OutputFormat.STREAM_ELEMENTS) as string;
 
 		const groups : Record<string, INodeExecutionData[]> = {}
 
