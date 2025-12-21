@@ -1,10 +1,11 @@
+import type { NodeConnectionType } from 'n8n-workflow';
 import {
 	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeConnectionType, NodeOperationError,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 enum OutputFormat {
@@ -27,12 +28,12 @@ export class GroupBy implements INodeType {
 		inputs: [
 			{
 				displayName: "Input",
-				type: NodeConnectionType.Main,
+				type: 'main' as NodeConnectionType,
 				required: true,
 				maxConnections: 1
 			}
 		],
-		outputs: [NodeConnectionType.Main],
+		outputs: ['main' as NodeConnectionType],
 		usableAsTool: true,
 		properties: [
 			{

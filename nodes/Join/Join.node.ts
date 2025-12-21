@@ -1,8 +1,10 @@
+import type { NodeConnectionType } from 'n8n-workflow';
 import {
 	IExecuteFunctions,
 	INodeExecutionData,
-	INodeType, INodeTypeBaseDescription,
-	INodeTypeDescription, NodeConnectionType,
+	INodeType,
+	INodeTypeBaseDescription,
+	INodeTypeDescription,
 } from 'n8n-workflow';
 import { loadOptions } from './methods';
 import { configuredInputs } from './utils';
@@ -20,7 +22,7 @@ export class Join implements INodeType {
 			name: 'Join',
 		},
 		inputs: `={{(${configuredInputs})($parameter)}}`,
-		outputs: [NodeConnectionType.Main],
+		outputs: ['main' as NodeConnectionType],
 		usableAsTool: true,
 		properties: [
 			{

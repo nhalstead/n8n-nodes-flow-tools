@@ -1,10 +1,10 @@
+import type { NodeConnectionType } from 'n8n-workflow';
 import {
 	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
 
@@ -22,18 +22,18 @@ export class Lookup implements INodeType {
 		inputs: [
 			{
 				displayName: "Input",
-				type: NodeConnectionType.Main,
+				type: 'main' as NodeConnectionType,
 				required: true,
 				maxConnections: 1
 			},
 			{
 				displayName: "Reference Data",
-				type: NodeConnectionType.Main,
+				type: 'main' as NodeConnectionType,
 				required: true,
 				maxConnections: 1
 			}
 		],
-		outputs: [NodeConnectionType.Main],
+		outputs: ['main' as NodeConnectionType],
 		usableAsTool: true,
 		properties: [
 			{
