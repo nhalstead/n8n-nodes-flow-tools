@@ -90,11 +90,6 @@ export class GroupBy implements INodeType {
 			const keyValueAsString = String(keyValue);
 
 			if (!groups[keyValueAsString]) groups[keyValueAsString] = [];
-
-			// Remove the key (only top-level for simplicity)
-			if (!keyOn.includes('.')) {
-				delete item.json[keyOn];
-			}
 			groups[keyValueAsString].push(item);
 		}
 
