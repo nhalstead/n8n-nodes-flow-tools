@@ -22,17 +22,17 @@ export class Lookup implements INodeType {
 		},
 		inputs: [
 			{
-				displayName: "Input",
+				displayName: 'Input',
 				type: 'main' as NodeConnectionType,
 				required: true,
-				maxConnections: 1
+				maxConnections: 1,
 			},
 			{
-				displayName: "Reference Data",
+				displayName: 'Reference Data',
 				type: 'main' as NodeConnectionType,
 				required: true,
-				maxConnections: 1
-			}
+				maxConnections: 1,
+			},
 		],
 		outputs: ['main' as NodeConnectionType],
 		usableAsTool: true,
@@ -42,14 +42,16 @@ export class Lookup implements INodeType {
 				name: 'needleKey',
 				type: 'string',
 				default: 'id',
-				description: 'Property to pull the value used for the search. Supports dot notation (e.g. "user.id").',
+				description:
+					'Property to pull the value used for the search. Supports dot notation (e.g. "user.key").',
 			},
 			{
 				displayName: 'Reference Input Search Key',
 				name: 'haystackKey',
 				type: 'string',
 				default: 'id',
-				description: 'Property to scan for the value to match in the input data. Supports dot notation (e.g. "user.id").',
+				description:
+					'Property to scan for the value to match in the input data. Supports dot notation (e.g. "user.key").',
 			},
 			{
 				displayName: 'Output Key',
@@ -63,20 +65,22 @@ export class Lookup implements INodeType {
 				name: 'outputFullItem',
 				type: 'boolean',
 				default: true,
-				description: 'Whether output should return the whole item from the lookup will be returned or just the property specified',
+				description:
+					'Whether output should return the whole item from the lookup will be returned or just the property specified',
 			},
 			{
 				displayName: 'Keys to Pluck From Matched',
 				name: 'outputFullItemKeys',
 				type: 'string',
 				default: 'id',
-				description: 'Property to output the full item to, if found. Supports dot notation (e.g. "user.name"). Only used if "Output Full Item" is false.',
+				description:
+					'Property to output the full item to, if found. Supports dot notation (e.g. "user.name"). Only used if "Output Full Item" is false.',
 				displayOptions: {
 					show: {
 						outputFullItem: [false],
 					},
 				},
-			}
+			},
 		],
 	};
 
@@ -107,9 +111,13 @@ export class Lookup implements INodeType {
 			}
 
 			if (typeof needleValue !== 'string' && typeof needleValue !== 'number') {
-				throw new NodeOperationError(this.getNode(), `Needle value for key "${needleKey}" must be a string or number, got ${typeof needleValue}`, {
-					itemIndex,
-				});
+				throw new NodeOperationError(
+					this.getNode(),
+					`Needle value for key "${needleKey}" must be a string or number, got ${typeof needleValue}`,
+					{
+						itemIndex,
+					},
+				);
 			}
 
 			let outputValue: INodeExecutionData | null = null;
@@ -117,8 +125,7 @@ export class Lookup implements INodeType {
 			// Check if the value is already in the lookup cache
 			if (lookupMap.has(needleValue.toString())) {
 				outputValue = lookupMap.get(needleValue.toString()) as INodeExecutionData;
-			}
-			else {
+			} else {
 				// If not found in cache, search through the lookup items
 				const foundValue = lookupItems.find((lookupItem: INodeExecutionData) => {
 					const lookupValue = get(lookupItem.json, haystackKey);
@@ -129,9 +136,13 @@ export class Lookup implements INodeType {
 					}
 
 					if (typeof lookupValue !== 'string' && typeof lookupValue !== 'number') {
-						throw new NodeOperationError(this.getNode(), `Haystack value for key "${haystackKey}" must be a string or number, got ${typeof lookupValue}`, {
-							itemIndex,
-						});
+						throw new NodeOperationError(
+							this.getNode(),
+							`Haystack value for key "${haystackKey}" must be a string or number, got ${typeof lookupValue}`,
+							{
+								itemIndex,
+							},
+						);
 					}
 					return lookupValue.toString() === needleValue.toString();
 				});
@@ -150,7 +161,7 @@ export class Lookup implements INodeType {
 			}
 
 			// Otherwise, set only the specified key from the matched item
-			const keysToPluck = outputFullItemKeys.split(',').map(key => key.trim());
+			const keysToPluck = outputFullItemKeys.split(',').map((key) => key.trim());
 
 			// If outputFullItem is true, set the entire matched item
 			if (outputFullItem || keysToPluck.length == 0) {
