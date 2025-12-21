@@ -7,6 +7,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
+import get from 'lodash/get';
 
 export class Lookup implements INodeType {
 	description: INodeTypeDescription = {
@@ -41,14 +42,14 @@ export class Lookup implements INodeType {
 				name: 'needleKey',
 				type: 'string',
 				default: 'id',
-				description: 'Property to pull the value used for the search',
+				description: 'Property to pull the value used for the search. Supports dot notation (e.g. "user.id").',
 			},
 			{
 				displayName: 'Reference Input Search Key',
 				name: 'haystackKey',
 				type: 'string',
 				default: 'id',
-				description: 'Property to scan for the value to match in the input data',
+				description: 'Property to scan for the value to match in the input data. Supports dot notation (e.g. "user.id").',
 			},
 			{
 				displayName: 'Output Key',
@@ -69,7 +70,7 @@ export class Lookup implements INodeType {
 				name: 'outputFullItemKeys',
 				type: 'string',
 				default: 'id',
-				description: 'Property to output the full item to, if found. Only used if "Output Full Item" is true.',
+				description: 'Property to output the full item to, if found. Supports dot notation (e.g. "user.name"). Only used if "Output Full Item" is false.',
 				displayOptions: {
 					show: {
 						outputFullItem: [false],
@@ -97,7 +98,7 @@ export class Lookup implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			item = items[itemIndex];
-			const needleValue = item.json[needleKey];
+			const needleValue = get(item.json, needleKey);
 
 			if (!needleValue) {
 				// If the haystack value is not present, set the output to null
@@ -120,7 +121,7 @@ export class Lookup implements INodeType {
 			else {
 				// If not found in cache, search through the lookup items
 				const foundValue = lookupItems.find((lookupItem: INodeExecutionData) => {
-					const lookupValue = lookupItem.json[haystackKey];
+					const lookupValue = get(lookupItem.json, haystackKey);
 
 					if (lookupValue == null) {
 						// If the lookup value is null or undefined, skip this item
@@ -158,19 +159,19 @@ export class Lookup implements INodeType {
 			}
 
 			if (keysToPluck.length == 1) {
-				// If keysToPluck is an array, pluck the first one
-				item.json[outputKey] = outputValue.json[keysToPluck[0]];
+				// If keysToPluck is an array, pluck the first one (supports dot notation)
+				item.json[outputKey] = get(outputValue.json, keysToPluck[0]) as IDataObject[string];
 				continue;
 			}
 
-			// If no keys are specified, set the output to an object of the selected keys
-			item.json[outputKey] = {} as IDataObject;
-			Object.keys(outputValue.json).forEach(key => {
-				if (keysToPluck.includes(key)) {
-					// @ts-ignore We know outputValue.json[key] is an object and not null
-					item.json[outputKey][key] = outputValue.json[key];
-				}
-			});
+			// If multiple keys are specified, set the output to an object of the selected keys
+			const pluckedResult: IDataObject = {};
+			for (const keyPath of keysToPluck) {
+				// Use the last segment of the path as the output key name
+				const outputKeyName = keyPath.includes('.') ? keyPath.split('.').pop()! : keyPath;
+				pluckedResult[outputKeyName] = get(outputValue.json, keyPath) as IDataObject[string];
+			}
+			item.json[outputKey] = pluckedResult;
 		}
 
 		return [items];

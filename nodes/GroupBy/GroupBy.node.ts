@@ -7,6 +7,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
+import get from 'lodash/get';
 
 enum OutputFormat {
 	STREAM_ELEMENTS = 'streamElements',
@@ -41,7 +42,7 @@ export class GroupBy implements INodeType {
 				name: 'keyOn',
 				type: 'string',
 				default: 'id',
-				description: 'Property to pull the value used for grouping',
+				description: 'Property to pull the value used for grouping. Supports dot notation (e.g. "user.id").',
 			},
 			{
 				displayName: "Output Format",
@@ -77,12 +78,15 @@ export class GroupBy implements INodeType {
 		const groups : Record<string, INodeExecutionData[]> = {}
 
 		for (const item of items) {
-			const keyValue = item.json[ keyOn ];
+			const keyValue = get(item.json, keyOn);
 			const keyValueAsString = String(keyValue);
 
 			if (!groups[ keyValueAsString ]) groups[ keyValueAsString ] = [];
 
-			delete item.json[ keyOn ]; // Remove the key
+			// Remove the key (only top-level for simplicity)
+			if (!keyOn.includes('.')) {
+				delete item.json[keyOn];
+			}
 			groups[ keyValueAsString ].push(item);
 		}
 
