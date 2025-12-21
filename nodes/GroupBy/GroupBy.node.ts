@@ -71,6 +71,23 @@ export class GroupBy implements INodeType {
 					},
 				],
 			},
+			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				options: [
+					{
+						displayName: 'Disable Dot Notation',
+						name: 'disableDotNotation',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to disallow referencing child fields using `parent.child` in the field name',
+					},
+				],
+			},
 		],
 	};
 
@@ -82,11 +99,16 @@ export class GroupBy implements INodeType {
 			0,
 			OutputFormat.STREAM_ELEMENTS,
 		) as string;
+		const disableDotNotation = this.getNodeParameter(
+			'options.disableDotNotation',
+			0,
+			false,
+		) as boolean;
 
 		const groups: Record<string, INodeExecutionData[]> = {};
 
 		for (const item of items) {
-			const keyValue = get(item.json, keyOn);
+			const keyValue = disableDotNotation ? item.json[keyOn] : get(item.json, keyOn);
 			const keyValueAsString = String(keyValue);
 
 			if (!groups[keyValueAsString]) groups[keyValueAsString] = [];
