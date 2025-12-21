@@ -96,7 +96,9 @@ export class GroupBy implements INodeType {
 							items: items,
 							key: key,
 							index: index
-						}
+						},
+						// Returns the first item as the source for parent data.
+						pairedItem: items.length > 0 ? items[0].pairedItem : undefined,
 					}
 				})
 		}
@@ -110,21 +112,27 @@ export class GroupBy implements INodeType {
 
 			if (outputFormat === OutputFormat.OBJECT_WITH_ITEMS) {
 				output = [{
-					json: groupObjects
+					json: groupObjects,
+					// Returns the first item as the source for parent data.
+					pairedItem: items.length > 0 ? items[0].pairedItem : undefined,
 				}];
 			}
 			else if (outputFormat === OutputFormat.OBJECT_ENTRIES) {
 				// Convert the object to an array of entries
-				output = [{
-					json: {
-						items: Object.entries(groupObjects).map(([key, values]) => {
-							return {
-								key: key,
-								values: values
-							};
-						})
-					}
-				}]
+				output = [
+					{
+						json: {
+							items: Object.entries(groupObjects).map(([key, values]) => {
+								return {
+									key: key,
+									values: values,
+								};
+							}),
+						},
+						// Returns the first item as the source for parent data.
+						pairedItem: items.length > 0 ? items[0].pairedItem : undefined,
+					},
+				];
 			}
 			else {
 				throw new NodeOperationError(this.getNode(), `Unknown output format: ${outputFormat}`);

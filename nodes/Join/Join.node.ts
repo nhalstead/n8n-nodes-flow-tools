@@ -117,8 +117,10 @@ export class Join implements INodeType {
 
 		const output: INodeExecutionData = {
 			json: finalObject,
-			binary: finalBinary
-		}
+			binary: finalBinary,
+			// Grab the first item's pairedItem if there is only one input item (this would set the source to pull data from)
+			pairedItem: allInputItems.length > 1 ? allInputItems[0].pairedItem : undefined,
+		};
 		return [[output]];
 	}
 
