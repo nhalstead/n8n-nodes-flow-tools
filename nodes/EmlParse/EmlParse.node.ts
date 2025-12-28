@@ -17,7 +17,9 @@ export class EmlParse implements INodeType {
 		version: 1,
 		description:
 			'Parse EML files to extract useful information such as sender, recipient, subject, and body content.',
-		defaults: {},
+		defaults: {
+			name: 'Parse EML',
+		},
 		inputs: [
 			{
 				displayName: 'Input',
@@ -69,7 +71,6 @@ export class EmlParse implements INodeType {
 		let output: INodeExecutionData[] = [];
 
 		for (const [index, item] of items.entries()) {
-
 			// If the key is defined in binary, use that first
 			if (item.binary && item.binary[sourceKey]) {
 				const sourceData = item.binary[sourceKey];
