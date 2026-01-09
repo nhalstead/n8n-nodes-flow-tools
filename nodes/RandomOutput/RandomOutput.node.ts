@@ -80,6 +80,25 @@ export class RandomOutput implements INodeType {
 				validateType: 'number',
 				description: 'The number of data outputs you want to send events',
 			},
+			{
+				displayName: 'Output Element',
+				name: 'outputElement',
+				type: 'options',
+				noDataExpression: true,
+				default: 'inputItem',
+				options: [
+					{
+						name: 'Input Item',
+						value: 'inputItem',
+					},
+					{
+						name: 'Output Index',
+						value: 'outputIndex',
+					},
+				],
+				validateType: 'string',
+				description: 'What to output on the different outputs',
+			},
 		],
 	};
 
@@ -112,6 +131,7 @@ export class RandomOutput implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const numberOutputs = this.getNodeParameter('numberOutputs', 0, 2) as number;
+		const outputElement = this.getNodeParameter('outputElement', 0, 'inputItem') as string;
 
 		// Loop over the input items, use javascript random to decide which output to send each item to
 		const allOutputs: INodeExecutionData[][] = Array.from({ length: numberOutputs }, () => []);
@@ -120,7 +140,19 @@ export class RandomOutput implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex++) {
 			const randomOutputIndex = Math.floor(Math.random() * numberOutputs);
-			allOutputs[randomOutputIndex].push(inputItems[itemIndex]);
+
+			switch (outputElement) {
+				case 'outputIndex':
+					const newItem: INodeExecutionData = {
+						json: { outputIndex: randomOutputIndex },
+					};
+					allOutputs[randomOutputIndex].push(newItem);
+					break;
+				case 'inputItem':
+				default:
+					allOutputs[randomOutputIndex].push(inputItems[itemIndex]);
+			}
+
 		}
 
 		return allOutputs;
