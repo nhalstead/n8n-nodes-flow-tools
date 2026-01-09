@@ -38,7 +38,7 @@
 			"dist/nodes/Lookup/Lookup.node.js",
 			"dist/nodes/GroupBy/GroupBy.node.js",
 			"dist/nodes/EmlParse/EmlParse.node.js",
-			"dist/nodes/EmlParse/RandomOutput.node.js"
+			"dist/nodes/RandomOutput/RandomOutput.node.js"
 		]
 	},
 	"dependencies": {
