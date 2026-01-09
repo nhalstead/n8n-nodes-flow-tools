@@ -19,7 +19,7 @@ export class RandomOutput implements INodeType {
 		displayName: 'Random Output',
 		name: 'randomOutput',
 		icon: 'file:randomOutput.svg',
-		group: ['transform'],
+		group: ['organization'],
 		version: 1,
 		description: 'Using JavaScript random, send input items to random output.',
 		defaults: {
@@ -99,6 +99,31 @@ export class RandomOutput implements INodeType {
 				validateType: 'string',
 				description: 'What to output on the different outputs',
 			},
+			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				options: [
+					{
+						displayName: 'Force All Items to Output',
+						name: 'forceOutput',
+						type: 'number',
+						default: null,
+						description:
+							'Bypass Random Output node behavior and send each item to a select output (useful for testing)',
+					},
+					{
+						displayName: "Allow 'Force All Items to Output' in Production",
+						name: 'forceOutputInProduction',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to allow \'Force All Items to Output\' to be used when the workflow is not in test mode',
+					},
+				],
+			},
 		],
 	};
 
@@ -132,6 +157,8 @@ export class RandomOutput implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const numberOutputs = this.getNodeParameter('numberOutputs', 0, 2) as number;
 		const outputElement = this.getNodeParameter('outputElement', 0, 'inputItem') as string;
+		const forceOutputInProduction = this.getNodeParameter('options.forceOutputInProduction', 0, false) as boolean;
+		const forceOutput = this.getNodeParameter('options.forceOutput', 0, null) as number;
 
 		// Loop over the input items, use javascript random to decide which output to send each item to
 		const allOutputs: INodeExecutionData[][] = Array.from({ length: numberOutputs }, () => []);
@@ -140,19 +167,32 @@ export class RandomOutput implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex++) {
 			const randomOutputIndex = Math.floor(Math.random() * numberOutputs);
+			const isTestWorkflow = this.getWorkflowDataProxy(itemIndex)['$execution'].mode === 'test';
+			let finalOutputIndex = randomOutputIndex;
+
+			// Allow forcing all items to one output to create predictable output for testing
+			if ((isTestWorkflow || forceOutputInProduction) && forceOutput !== undefined) {
+				let forcedOutputIndex = forceOutput;
+
+				if (forcedOutputIndex < 0 || forcedOutputIndex >= numberOutputs) {
+					// default to output index 0 if the index is out of range
+					forcedOutputIndex = 0;
+				}
+
+				finalOutputIndex = forcedOutputIndex;
+			}
 
 			switch (outputElement) {
 				case 'outputIndex':
 					const newItem: INodeExecutionData = {
 						json: { outputIndex: randomOutputIndex },
 					};
-					allOutputs[randomOutputIndex].push(newItem);
+					allOutputs[finalOutputIndex].push(newItem);
 					break;
 				case 'inputItem':
 				default:
-					allOutputs[randomOutputIndex].push(inputItems[itemIndex]);
+					allOutputs[finalOutputIndex].push(inputItems[itemIndex]);
 			}
-
 		}
 
 		return allOutputs;
