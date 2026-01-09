@@ -185,7 +185,7 @@ export class RandomOutput implements INodeType {
 			switch (outputElement) {
 				case 'outputIndex':
 					const newItem: INodeExecutionData = {
-						json: { outputIndex: randomOutputIndex },
+						json: { outputIndex: finalOutputIndex },
 					};
 					allOutputs[finalOutputIndex].push(newItem);
 					break;
