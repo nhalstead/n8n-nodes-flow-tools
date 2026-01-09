@@ -171,7 +171,7 @@ export class RandomOutput implements INodeType {
 			let finalOutputIndex = randomOutputIndex;
 
 			// Allow forcing all items to one output to create predictable output for testing
-			if ((isTestWorkflow || forceOutputInProduction) && forceOutput !== undefined) {
+			if ((isTestWorkflow || forceOutputInProduction) && forceOutput !== null) {
 				let forcedOutputIndex = forceOutput;
 
 				if (forcedOutputIndex < 0 || forcedOutputIndex >= numberOutputs) {
