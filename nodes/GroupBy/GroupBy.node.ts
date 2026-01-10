@@ -22,6 +22,7 @@ export class GroupBy implements INodeType {
 		icon: 'file:groupBy.svg',
 		group: ['transform'],
 		version: 1,
+		subtitle: '={{$parameter["keyOn"]}}',
 		description:
 			'Groups items by a key, optionally as stream items or as an object with an array of items',
 		defaults: {

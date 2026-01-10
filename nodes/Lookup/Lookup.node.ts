@@ -16,6 +16,7 @@ export class Lookup implements INodeType {
 		icon: 'file:lookup.svg',
 		group: ['transform'],
 		version: 1,
+		subtitle: '={{"for " + $parameter["needleKey"] + " lookup in " + $parameter["haystackKey"] + " as " + $parameter["outputKey"]}}',
 		description: 'Lookup values from a collection of events provided.',
 		defaults: {
 			name: 'Lookup',

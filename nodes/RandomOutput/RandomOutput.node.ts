@@ -21,6 +21,7 @@ export class RandomOutput implements INodeType {
 		icon: 'file:randomOutput.svg',
 		group: ['organization'],
 		version: 1,
+		subtitle: '={{"1 in " + $parameter["numberOutputs"] + " chances"}}',
 		description: 'Using JavaScript random, send input items to random output.',
 		defaults: {
 			name: 'Random Output',
@@ -120,7 +121,7 @@ export class RandomOutput implements INodeType {
 						type: 'boolean',
 						default: false,
 						description:
-							'Whether to allow \'Force All Items to Output\' to be used when the workflow is not in test mode',
+							"Whether to allow 'Force All Items to Output' to be used when the workflow is not in test mode",
 					},
 				],
 			},
@@ -157,7 +158,11 @@ export class RandomOutput implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const numberOutputs = this.getNodeParameter('numberOutputs', 0, 2) as number;
 		const outputElement = this.getNodeParameter('outputElement', 0, 'inputItem') as string;
-		const forceOutputInProduction = this.getNodeParameter('options.forceOutputInProduction', 0, false) as boolean;
+		const forceOutputInProduction = this.getNodeParameter(
+			'options.forceOutputInProduction',
+			0,
+			false,
+		) as boolean;
 		const forceOutput = this.getNodeParameter('options.forceOutput', 0, null) as number;
 
 		// Loop over the input items, use javascript random to decide which output to send each item to
