@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-flow-tools",
-	"version": "0.1.21",
+	"version": "0.1.22",
 	"description": "Additional Tools for n8n Streams",
 	"keywords": [
 		"n8n-community-node-package"
@@ -39,7 +39,8 @@
 			"dist/nodes/GroupBy/GroupBy.node.js",
 			"dist/nodes/EmlParse/EmlParse.node.js",
 			"dist/nodes/RandomOutput/RandomOutput.node.js",
-			"dist/nodes/TlsInfo/TlsInfo.node.js"
+			"dist/nodes/TlsInfo/TlsInfo.node.js",
+			"dist/nodes/DnsLookup/DnsLookup.node.js"
 		]
 	},
 	"dependencies": {
