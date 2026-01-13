@@ -64,7 +64,7 @@ export class DnsLookup implements INodeType {
 						type: 'string',
 						default: '',
 						placeholder: '8.8.8.8',
-						description: 'IP address of a specific DNS server to query. Leave empty to use system default',
+						description: 'IP address of a specific DNS server to query. Leave empty to use system default.',
 					},
 					{
 						displayName: 'Timeout',
