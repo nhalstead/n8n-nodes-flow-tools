@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-flow-tools",
-	"version": "0.1.25",
+	"version": "0.1.26",
 	"description": "Additional Tools for n8n Streams",
 	"keywords": [
 		"n8n-community-node-package"
@@ -22,17 +22,19 @@
 	"scripts": {
 		"build": "npx rimraf dist && tsc && gulp build:icons",
 		"dev": "tsc --watch",
-		"format": "prettier nodes --write",
-		"lint": "eslint nodes package.json",
-		"lintfix": "eslint nodes package.json --fix",
-		"prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes package.json"
+		"format": "prettier nodes credentials --write",
+		"lint": "eslint nodes credentials package.json",
+		"lintfix": "eslint nodes credentials package.json --fix",
+		"prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
 	},
 	"files": [
 		"dist"
 	],
 	"n8n": {
 		"n8nNodesApiVersion": 1,
-		"credentials": [],
+		"credentials": [
+			"dist/credentials/AwsOidcApi.credentials.js"
+		],
 		"nodes": [
 			"dist/nodes/Join/Join.node.js",
 			"dist/nodes/Lookup/Lookup.node.js",
@@ -40,14 +42,19 @@
 			"dist/nodes/EmlParse/EmlParse.node.js",
 			"dist/nodes/RandomOutput/RandomOutput.node.js",
 			"dist/nodes/TlsInfo/TlsInfo.node.js",
-			"dist/nodes/DnsLookup/DnsLookup.node.js"
+			"dist/nodes/DnsLookup/DnsLookup.node.js",
+			"dist/nodes/AwsS3Signer/AwsS3Signer.node.js",
+			"dist/nodes/AwsSts/AwsSts.node.js"
 		]
 	},
 	"dependencies": {
+		"@aws-sdk/credential-providers": "^3.1166.0",
+		"aws4": "^1.13.2",
 		"lodash": "^4.18.1",
 		"mailparser": "^3.14.3"
 	},
 	"devDependencies": {
+		"@types/aws4": "^1.11.6",
 		"@types/lodash": "^4.17.21",
 		"@types/mailparser": "^3.4.6",
 		"@typescript-eslint/parser": "~8.32.0",
