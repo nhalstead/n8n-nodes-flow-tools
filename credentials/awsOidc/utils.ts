@@ -321,23 +321,94 @@ export async function fetchOidcToken(credentials: AwsOidcCredentials): Promise<s
 	return classified.token;
 }
 
+type LegacyHttpRequestOptions = IHttpRequestOptions & {
+	/** HTTP Request node still sends the target on the legacy `uri` field. */
+	uri?: string;
+};
+
+const AWS_REGION_PATTERN = /^[a-z]+(?:-[a-z]+)+-\d+$/;
+
+/**
+ * Reads the signing service and region from an AWS host, such as
+ * `route53domains.us-east-1.amazonaws.com`. Returns `{}` for other hosts.
+ */
+function parseAwsHost(hostname: string): { service?: string; region?: string } {
+	const labels = hostname.toLowerCase().split('.');
+	const suffixIdx = labels.indexOf('amazonaws');
+	if (suffixIdx === -1) return {};
+
+	const hostLabels = labels.slice(0, suffixIdx);
+	const regionIdx = hostLabels.findIndex((label) => AWS_REGION_PATTERN.test(label));
+	const region = regionIdx === -1 ? undefined : hostLabels[regionIdx];
+
+	// The service sits left of the region. Without a region, it is the last host label.
+	let serviceIdx = regionIdx === -1 ? hostLabels.length - 1 : regionIdx - 1;
+	if (hostLabels[serviceIdx] === 'dualstack') serviceIdx--;
+	const service = serviceIdx >= 0 ? hostLabels[serviceIdx] : undefined;
+
+	return { service, region };
+}
+
+/**
+ * Maps an endpoint label to the SigV4 signing name. Same cases as n8n's
+ * `getAwsSigningService`: the host label and the name AWS verifies differ for
+ * these services.
+ */
+function getAwsSigningService(service: string): string {
+	const baseService = service.replace(/-fips$/, '');
+	if (/(^|\.)s3(-accesspoint|-control|-accelerate)?$/.test(baseService)) {
+		return 's3';
+	}
+	switch (baseService) {
+		case 'bedrock-runtime':
+		case 'bedrock-agent':
+		case 'bedrock-agent-runtime':
+		case 'bedrock-data-automation':
+		case 'bedrock-data-automation-runtime':
+			return 'bedrock';
+		case 'queue':
+			return 'sqs';
+		case 'email':
+			return 'ses';
+		default:
+			return baseService;
+	}
+}
+
+/** Plain objects and arrays are JSON bodies. Strings and buffers are already encoded. */
+function shouldStringifyBody(value: unknown, headers: IDataObject): value is object {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		!Buffer.isBuffer(value) &&
+		!(value instanceof URLSearchParams) &&
+		headers['Content-Length'] === undefined &&
+		headers['content-length'] === undefined
+	);
+}
+
 /**
  * Sign an outgoing HTTP request with temporary AWS credentials (SigV4).
+ * Accepts both `url`/`baseURL` (IHttpRequestOptions) and `uri` (HTTP Request node).
+ * The service and region come from the host when it is an AWS host. Otherwise
+ * the `service` argument and `region` are used, with `sts` as the fallback service.
  */
 export function signAwsRequest(
 	requestOptions: IHttpRequestOptions,
 	securityHeaders: AwsTemporaryCredentials,
 	region: string,
-	service = 'sts',
+	service?: string,
 ): IHttpRequestOptions {
+	const legacyRequest = requestOptions as LegacyHttpRequestOptions;
+	const target = requestOptions.url || legacyRequest.uri;
 	const method = (requestOptions.method || 'GET').toUpperCase();
 	let url: URL;
 
 	try {
 		if (requestOptions.baseURL) {
-			url = new URL(requestOptions.url || '', requestOptions.baseURL);
-		} else if (requestOptions.url) {
-			url = new URL(requestOptions.url);
+			url = new URL(target || '', requestOptions.baseURL);
+		} else if (target) {
+			url = new URL(target);
 		} else {
 			throw new UserError('Request URL is required for AWS signing');
 		}
@@ -353,21 +424,47 @@ export function signAwsRequest(
 		}
 	}
 
-	let body = requestOptions.body;
-	if (body && typeof body === 'object' && !(body instanceof Buffer) && typeof body !== 'string') {
-		body = new URLSearchParams(body as Record<string, string>).toString();
+	const hostInfo = parseAwsHost(url.hostname);
+	const signingService = getAwsSigningService(service ?? hostInfo.service ?? 'sts');
+	const signingRegion = hostInfo.region ?? region;
+
+	// Match n8n's awsGetSignInOptionsAndUpdateRequest: JSON-stringify object bodies,
+	// and encode the HTTP Request node's `form` field as urlencoded. aws4 signs the
+	// bytes that are actually sent.
+	const headers: IDataObject = {
+		...(requestOptions.headers as IDataObject | undefined),
+	};
+	const form = (requestOptions as IHttpRequestOptions & { form?: Record<string, string> }).form;
+	const rawBody: unknown = requestOptions.body;
+	let bodyContent: string | Buffer | undefined;
+
+	if (form) {
+		const params = new URLSearchParams();
+		for (const key of Object.keys(form)) {
+			params.append(key, form[key]);
+		}
+		bodyContent = params.toString();
+		if (headers['Content-Type'] === undefined && headers['content-type'] === undefined) {
+			headers['content-type'] = 'application/x-www-form-urlencoded';
+		}
+	} else if (shouldStringifyBody(rawBody, headers)) {
+		bodyContent = JSON.stringify(rawBody);
+	} else if (typeof rawBody === 'string' || Buffer.isBuffer(rawBody)) {
+		bodyContent = rawBody;
+	} else if (rawBody instanceof URLSearchParams) {
+		bodyContent = rawBody.toString();
+	} else if (rawBody !== undefined && rawBody !== null) {
+		bodyContent = String(rawBody);
 	}
 
 	const signOpts = {
 		host: url.host,
 		method,
 		path: `${url.pathname}${url.search}`,
-		body: body ? String(body) : undefined,
-		service,
-		region,
-		headers: {
-			...(requestOptions.headers as Record<string, string> | undefined),
-		},
+		body: bodyContent,
+		service: signingService,
+		region: signingRegion,
+		headers,
 	} as Aws4Request;
 
 	sign(signOpts, {
@@ -376,13 +473,26 @@ export function signAwsRequest(
 		sessionToken: securityHeaders.sessionToken,
 	});
 
-	return {
+	const signedUrl = url.toString();
+	const signedRequest: LegacyHttpRequestOptions = {
 		...requestOptions,
-		url: url.toString(),
+		url: signedUrl,
 		baseURL: undefined,
 		qs: undefined,
 		body: signOpts.body,
 		headers: signOpts.headers as IHttpRequestOptions['headers'],
 		method: method as IHttpRequestOptions['method'],
 	};
+
+	// The HTTP client prefers `url`, but keep `uri` aligned so the unsigned target is not sent.
+	if (legacyRequest.uri !== undefined) {
+		signedRequest.uri = signedUrl;
+	}
+
+	// `form` was encoded into `body`. Leaving it set makes the client send a second body.
+	if (form) {
+		delete (signedRequest as { form?: unknown }).form;
+	}
+
+	return signedRequest;
 }

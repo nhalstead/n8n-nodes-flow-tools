@@ -13,7 +13,7 @@ import { type AwsOidcCredentials, signAwsRequest } from './awsOidc/utils';
 export class AwsOidcApi implements ICredentialType {
 	name = 'awsOidcApi';
 
-	displayName = 'AWS OIDC API';
+	displayName = 'AWS (OIDC)';
 
 	documentationUrl =
 		'https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html';
@@ -158,10 +158,10 @@ export class AwsOidcApi implements ICredentialType {
 		},
 	];
 
-	async authenticate(
+	authenticate = async (
 		rawCredentials: ICredentialDataDecryptedObject,
 		requestOptions: IHttpRequestOptions,
-	): Promise<IHttpRequestOptions> {
+	): Promise<IHttpRequestOptions> => {
 		const credentials = rawCredentials as unknown as AwsOidcCredentials;
 		const region = (credentials.region || 'us-east-1').trim();
 
@@ -173,8 +173,9 @@ export class AwsOidcApi implements ICredentialType {
 			throw new UserError(`AWS OIDC authentication failed: ${message}`);
 		}
 
+		// Leave undefined when unset, so the signer can read the service from the host.
 		const service =
-			typeof requestOptions.qs?.service === 'string' ? requestOptions.qs.service : 'sts';
+			typeof requestOptions.qs?.service === 'string' ? requestOptions.qs.service : undefined;
 
 		if (requestOptions.qs) {
 			const { service: _service, ...restQs } = requestOptions.qs;
