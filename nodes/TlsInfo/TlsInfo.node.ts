@@ -1,5 +1,6 @@
 import type { IDataObject } from 'n8n-workflow';
 import {
+	ApplicationError,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -40,35 +41,38 @@ function formatTlsVersionRange(minVersion: TlsSecureVersion, maxVersion: TlsSecu
  * Node's defaults are typically min=TLSv1.2 / max=TLSv1.3. Setting only max=TLSv1.1
  * leaves the effective min at TLSv1.2, which is an empty protocol set.
  */
-function assertValidTlsVersionRange(minVersion: TlsSecureVersion, maxVersion: TlsSecureVersion): void {
+function getInvalidTlsVersionRangeMessage(
+	minVersion: TlsSecureVersion,
+	maxVersion: TlsSecureVersion,
+): string | undefined {
 	const effectiveMin = minVersion || tls.DEFAULT_MIN_VERSION;
 	const effectiveMax = maxVersion || tls.DEFAULT_MAX_VERSION;
 
 	const minOrder = TLS_VERSION_ORDER[effectiveMin];
 	const maxOrder = TLS_VERSION_ORDER[effectiveMax];
 	if (minOrder === undefined || maxOrder === undefined || minOrder <= maxOrder) {
-		return;
+		return undefined;
 	}
 
 	if (minVersion && maxVersion) {
-		throw new Error(
-			`Invalid TLS version range: Minimum TLS Version (${minVersion}) cannot be higher than Maximum TLS Version (${maxVersion}).`,
-		);
+		return `Invalid TLS version range: Minimum TLS Version (${minVersion}) cannot be higher than Maximum TLS Version (${maxVersion}).`;
 	}
 
 	if (!minVersion && maxVersion) {
-		throw new Error(
+		return (
 			`Invalid TLS version range: Maximum TLS Version (${maxVersion}) is below Node's default minimum (${tls.DEFAULT_MIN_VERSION}). ` +
-				`Also set Minimum TLS Version to ${maxVersion} or lower.`,
+			`Also set Minimum TLS Version to ${maxVersion} or lower.`
 		);
 	}
 
 	if (minVersion && !maxVersion) {
-		throw new Error(
+		return (
 			`Invalid TLS version range: Minimum TLS Version (${minVersion}) is above Node's default maximum (${tls.DEFAULT_MAX_VERSION}). ` +
-				`Also set Maximum TLS Version to ${minVersion} or higher.`,
+			`Also set Maximum TLS Version to ${minVersion} or higher.`
 		);
 	}
+
+	return undefined;
 }
 
 function isEmptyTlsProtocolRangeError(error: Error): boolean {
@@ -100,13 +104,10 @@ function emptyTlsProtocolRangeMessage(
 ): string {
 	const { host, port, minVersion, maxVersion } = options;
 	const range = formatTlsVersionRange(minVersion, maxVersion);
+	const invalidRangeMessage = getInvalidTlsVersionRangeMessage(minVersion, maxVersion);
 
-	try {
-		assertValidTlsVersionRange(minVersion, maxVersion);
-	} catch (error) {
-		if (error instanceof Error) {
-			return `${error.message} (${host}:${port}, ${range})`;
-		}
+	if (invalidRangeMessage) {
+		return `${invalidRangeMessage} (${host}:${port}, ${range})`;
 	}
 
 	if (requestsLegacyTls(minVersion, maxVersion)) {
@@ -128,12 +129,12 @@ function toConnectionError(
 	options: Pick<TlsInfoOptions, 'host' | 'port' | 'minVersion' | 'maxVersion'>,
 ): Error {
 	if (isEmptyTlsProtocolRangeError(error)) {
-		return new Error(emptyTlsProtocolRangeMessage(options));
+		return new ApplicationError(emptyTlsProtocolRangeMessage(options));
 	}
 
 	if (isTlsProtocolVersionMismatchError(error)) {
 		const range = formatTlsVersionRange(options.minVersion, options.maxVersion);
-		return new Error(
+		return new ApplicationError(
 			`TLS protocol version mismatch with ${options.host}:${options.port} (${range}). ` +
 				`The server rejected the client's offered versions. Try widening Min/Max TLS Version, or leave them as Default.`,
 		);
@@ -280,7 +281,10 @@ function fetchTlsInfo(options: TlsInfoOptions): Promise<IDataObject> {
 	const { host, port, servername, rejectUnauthorized, timeout, minVersion, maxVersion } =
 		options;
 
-	assertValidTlsVersionRange(minVersion, maxVersion);
+	const invalidRangeMessage = getInvalidTlsVersionRangeMessage(minVersion, maxVersion);
+	if (invalidRangeMessage) {
+		return Promise.reject(new ApplicationError(invalidRangeMessage));
+	}
 
 	return new Promise((resolve, reject) => {
 		let settled = false;
@@ -330,18 +334,20 @@ function fetchTlsInfo(options: TlsInfoOptions): Promise<IDataObject> {
 				try {
 					settle(undefined, buildTlsResult(socket!, options));
 				} catch (error) {
-					settle(error instanceof Error ? error : new Error(String(error)));
+					settle(
+						error instanceof Error ? error : new ApplicationError(String(error)),
+					);
 				}
 			});
 		} catch (error) {
-			settle(error instanceof Error ? error : new Error(String(error)));
+			settle(error instanceof Error ? error : new ApplicationError(String(error)));
 			return;
 		}
 
 		socket.setTimeout(timeout);
 
 		socket.once('timeout', () => {
-			settle(new Error(`Connection timed out after ${timeout}ms`));
+			settle(new ApplicationError(`Connection timed out after ${timeout}ms`));
 		});
 
 		socket.once('error', (err) => {
