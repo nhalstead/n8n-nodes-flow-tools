@@ -51,18 +51,19 @@ export class GroupBy implements INodeType {
 				displayName: 'Output Format',
 				name: 'outputFormat',
 				type: 'options',
-				default: 'streamElements',
+				noDataExpression: true,
+				default: 'objectWithItems',
 				options: [
-					{
-						name: 'Stream Elements',
-						value: OutputFormat.STREAM_ELEMENTS,
-						description: 'Outputs one item per group, each group is emitted as a separate item',
-					},
 					{
 						name: 'Object',
 						value: OutputFormat.OBJECT_WITH_ITEMS,
 						description:
 							'Outputs a single object, where each key contains an array of grouped items',
+					},
+					{
+						name: 'Stream Elements',
+						value: OutputFormat.STREAM_ELEMENTS,
+						description: 'Outputs one item per group, each group is emitted as a separate item',
 					},
 					{
 						name: 'Object Entries',
